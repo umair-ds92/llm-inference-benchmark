@@ -1,0 +1,182 @@
+# Benchmark Configuration for LLM Inference Testing
+
+# General Settings
+benchmark:
+  name: "llm-inference-baseline"
+  version: "1.0.0"
+  description: "Baseline benchmarking across multiple LLMs"
+  output_dir: "results/baseline"
+  random_seed: 42
+
+# Model Selection
+# Options: Use a preset from models.yaml or specify individual models
+model_selection:
+  preset: "full_suite"  # quick_test, cost_optimized, quality_focused, full_suite
+  # OR specify individual models:
+  # models:
+  #   - "llama-2-7b"
+  #   - "mistral-7b-instruct"
+
+# Workload Configuration
+workloads:
+  - name: "qa"
+    display_name: "Question Answering"
+    description: "Short factual questions with concise answers"
+    dataset: "trivia_qa"  # or custom JSON file path
+    num_samples: 100
+    prompt_templates:
+      - "Q: {question}\nA:"
+      - "Question: {question}\nAnswer:"
+    prompt_length_range: [50, 200]  # tokens
+    expected_output_length: 100  # tokens
+    temperature: 0.0  # deterministic for fair comparison
+    top_p: 1.0
+    repetition_penalty: 1.0
+
+  - name: "summarization"
+    display_name: "Document Summarization"
+    description: "Long documents with concise summaries"
+    dataset: "cnn_dailymail"
+    num_samples: 100
+    prompt_templates:
+      - "Summarize the following article:\n\n{article}\n\nSummary:"
+    prompt_length_range: [500, 2000]  # tokens
+    expected_output_length: 150  # tokens
+    temperature: 0.3
+    top_p: 0.95
+    repetition_penalty: 1.1
+
+  - name: "code_generation"
+    display_name: "Code Generation"
+    description: "Programming tasks with code solutions"
+    dataset: "humaneval"
+    num_samples: 100
+    prompt_templates:
+      - "# Python function\n{description}\n\ndef solution():"
+    prompt_length_range: [100, 500]  # tokens
+    expected_output_length: 200  # tokens
+    temperature: 0.2
+    top_p: 0.95
+    repetition_penalty: 1.0
+
+  - name: "conversation"
+    display_name: "Conversational"
+    description: "Multi-turn dialogue with context"
+    dataset: "custom"  # Will use synthetic conversations
+    num_samples: 50
+    num_turns: 3  # Multi-turn conversations
+    prompt_length_range: [200, 800]  # tokens including history
+    expected_output_length: 150  # tokens
+    temperature: 0.7
+    top_p: 0.95
+    repetition_penalty: 1.1
+
+# Batch Size Configuration
+batch_sizes: [1, 4, 8, 16, 32]
+
+# Request Rate Configuration
+# For throughput testing
+request_rates:
+  - rate: 1    # requests per second
+    duration: 60  # seconds
+    label: "low_load"
+  
+  - rate: 5
+    duration: 60
+    label: "medium_load"
+  
+  - rate: 10
+    duration: 60
+    label: "high_load"
+
+# Metrics to Collect
+metrics:
+  latency:
+    - "time_to_first_token"  # TTFT
+    - "inter_token_latency"   # ITL
+    - "end_to_end_latency"    # Total time
+    - "percentiles": [50, 90, 95, 99]  # p50, p90, p95, p99
+  
+  throughput:
+    - "tokens_per_second"
+    - "requests_per_second"
+    - "tokens_per_request"
+  
+  resource_utilization:
+    - "gpu_memory_used"
+    - "gpu_memory_reserved"
+    - "gpu_utilization_percent"
+    - "cpu_percent"
+    - "ram_used_gb"
+  
+  cost:
+    - "cost_per_request"
+    - "cost_per_1m_tokens"
+    - "infrastructure_cost_per_hour"
+  
+  quality:  # Optional, requires ground truth
+    - "perplexity"
+    - "bleu_score"
+    - "rouge_score"
+
+# Infrastructure Settings
+infrastructure:
+  provider: "aws"
+  region: "us-east-1"
+  instance_types:
+    - "g5.xlarge"   # 1x A10G (24GB), 4 vCPU, 16GB RAM
+    - "g5.2xlarge"  # 1x A10G (24GB), 8 vCPU, 32GB RAM
+  
+  # Storage
+  storage:
+    type: "ebs"
+    size_gb: 100
+    volume_type: "gp3"
+  
+  # Monitoring
+  monitoring:
+    enabled: true
+    metrics_interval_seconds: 5
+    prometheus_port: 9090
+
+# Optimization Experiments
+optimizations:
+  quantization:
+    enabled: false  
+    methods: ["fp16", "int8", "int4"]
+  
+  kv_cache:
+    enabled: false  
+    strategies: ["default", "optimized", "none"]
+  
+  batching:
+    enabled: true
+    strategies: ["static", "continuous"]
+
+# Safety and Limits
+limits:
+  max_concurrent_requests: 100
+  request_timeout_seconds: 300
+  max_retries: 3
+  retry_delay_seconds: 5
+
+# Output and Reporting
+output:
+  save_raw_results: true
+  save_aggregated_results: true
+  generate_plots: true
+  generate_report: true
+  formats: ["json", "csv", "parquet"]
+  
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "logs/benchmark.log"
+  console: true
+  structured: true  # JSON-formatted logs
+
+# Reproducibility
+reproducibility:
+  save_config: true
+  save_environment: true  # Package versions, GPU info, etc.
+  git_commit_hash: true  # Save current git commit
