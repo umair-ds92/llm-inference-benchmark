@@ -70,3 +70,8 @@ ipywidgets>=8.1.0
 # Performance Profiling
 py-spy>=0.3.14
 memory-profiler>=0.61.0
+
+# Evaluation and quality metrics
+rouge-score>=0.1.2
+absl-py>=2.4.0
+nltk>=3.9.2
